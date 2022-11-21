@@ -2,7 +2,7 @@
 #include <stdlib.h>
  
 // Models
-// Green
+// Green //
 
 char spaceShipImage[165] = 
 "@____                           \n"
