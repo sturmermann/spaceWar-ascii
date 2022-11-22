@@ -1,8 +1,27 @@
 #include <ncurses.h>
 #include <stdlib.h>
+#include <sys/time.h>
+
+// 1. Создать меню
+// новая идея - корабль - вид сверху. Путешествует по разным квадратам. Случайно генерерируется когда входишь в квадрат
+// несколько типов разных. Или один большой блок - камень. Сам серый. Есть золотые вкропления. Сверху будет написано gold meteor
+// Другой тип - камнепад. Другой тип - корабль 1-2-3. Ещё тип - магазин улучшений за золото
+
+// 1. тик ограничен временем
+// 2. менюшка
+
+
+//init_pair(1, COLOR_BLACK, COLOR_RED);
+    // init_pair(2, COLOR_BLACK, COLOR_GREEN);
+
+    // attron(COLOR_PAIR(1));
+    // printw("This should be printed in black with a red background!\n");
+
+    // attron(COLOR_PAIR(2));
+    // printw("And this in a green background!\n");
+    // refresh();
  
 // Models
-// Green // .. \
 
 char spaceShipImage[165] = 
 "@____                           \n"
@@ -25,6 +44,9 @@ char bulletImage[5]= "---->"; // 5 * 1
 
 void endGame(), movingStones(), movingPlayer(), draw(), 
 collision(), main(), init(), finish(), newBullet();
+
+#define msecPerIter 10 // How many msecs per iteration of loop we except; 100 FPS 
+
 #define nn 50 // how many 'enemy' we have
 #define bb 20 // maximum of bullets
 #define bulletMaxLife 150 //idk
@@ -32,6 +54,9 @@ short int loops = 0; // loops
 long long int score = 0; // score
 long long int speed = 0;
 long long int bulletsHow = 0; // how many bullets we have on screen
+struct timeval t0, t1; // time-structures with
+long long int deltaTime;
+
 
 struct spaceShip { int y; int x; };
 
@@ -59,7 +84,7 @@ short int map[1000][1000]; // y*x
 
 void movingPlayer(){
     int k = getch();
-    int sp = 3cd ;
+    int sp = 3;
     if ( k == 'w' || k == KEY_UP || k == '8' ){
         ourShip.y -= sp;
     }
@@ -273,6 +298,7 @@ void init(){
     curs_set(0); // no cursor
     keypad(stdscr, 1); // can use arrows etc
     timeout(0); // getch - no waiting
+    gettimeofday(&t0, NULL); // get the first time moment time :)
 }
 
 void finish(){
@@ -283,6 +309,14 @@ void finish(){
     endwin();
     exit(0);
 }
+
+long long int timeDiffMilSec(struct timeval t0, struct timeval t1){
+    long long int seconds, useconds, milliseconds;
+    seconds = t1.tv_sec - t0.tv_sec; //seconds
+    useconds = t1.tv_usec - t0.tv_usec; //milliseconds
+    milliseconds = ((seconds) * 1000 + useconds/1000.0);
+    return milliseconds;
+} // return time difference in milliseconds
 
 void main(){
     init();
@@ -309,25 +343,34 @@ void main(){
     bulletSprite.height = 1; bulletSprite.width = 5;
 
     while(true){ 
-        movingStones();
-        movingPlayer();
-        if (loops%1 == 0){
-            movingBullets();
-        }
-        
-        draw();
-        refresh();
-        
-        collision();
-        napms(10);
-        loops += 1;
-        if (loops%500 == 0){
-            score++;
-            if (score%1 == 0){
-                speed++;
+        gettimeofday(&t1, NULL);
+                
+        if ( (deltaTime=timeDiffMilSec(t0, t1)) >= msecPerIter ){
+            movingStones();
+            movingPlayer();
+            if (loops%1 == 0){
+                movingBullets();
             }
+            
+            draw();
+            mvprintw(0, 0, "%d", deltaTime);
+            refresh();
+            
+            //collision();
+            loops += 1;
+            if (loops%5 == 0){
+                score++;
+                if (score%1 == 0){
+                    speed++;
+                }
+            }
+            
+            erase();
+            gettimeofday(&t0, NULL);
         }
+       
+        napms(0);
+
         
-        erase();
     }
 }
